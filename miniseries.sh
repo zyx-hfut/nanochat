@@ -14,13 +14,13 @@ source .venv/bin/activate
 
 # Tokenizer
 # python -m nanochat.dataset -n 240X
-python -m scripts.tok_train --max_chars=2000000000 --vocab_size=32768
+python -m scripts.tok_train --max_chars=40_000_000_000 --vocab_size=65536
 
 # Depths to train (the "miniseries")
-DEPTHS=(22)
+DEPTHS=(20)
 # Logging
 
-RESULTS_DIR="$NANOCHAT_BASE_DIR/jan7_miniseries_results"
+RESULTS_DIR="$NANOCHAT_BASE_DIR/ikm_mini_results"
 mkdir -p "$RESULTS_DIR"
 RESULTS_FILE="$RESULTS_DIR/results.csv"
 
@@ -47,7 +47,7 @@ for d in "${DEPTHS[@]}"; do
     # No --target_flops, let it use the default ratio from base_train
     nohup python -u -m scripts.base_train -- \
         --depth=$d \
-        --target_param_data_ratio=10 \
+        --target_param_data_ratio=16 \
         --run="dummy" \
         --device_type="cuda" \
         --device_batch_size=8 \
@@ -84,7 +84,7 @@ for d in "${DEPTHS[@]}"; do
 done
 
 log "=============================================="
-log "Jan 7 Miniseries Complete!"
+log "IKM_mini Complete!"
 log "=============================================="
 log "Results saved to: $RESULTS_FILE"
 echo ""
