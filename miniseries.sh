@@ -56,7 +56,7 @@ for d in "${DEPTHS[@]}"; do
         --core_metric_every=999999 \
         --core_metric_max_per_task=-1 \
         --sample_every=2000 \
-        --save_every=2000 \
+        --save_every=4000 \
         2>&1 | tee "$RESULTS_DIR/${TAG}_train.log"
 
     END_TIME=$(date +%s)
