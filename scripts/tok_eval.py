@@ -14,19 +14,15 @@ While USDA announced a risk-based phased port re-opening strategy for cattle, bi
 “The United States has promised to be vigilant — and after detecting this new NWS case, we are pausing the planned port reopening’s to further quarantine and target this deadly pest in Mexico. We must see additional progress combatting NWS in Veracruz and other nearby Mexican states in order to reopen livestock ports along the Southern border,” said U.S. Secretary of Agriculture Brooke L. Rollins. “Thanks to the aggressive monitoring by USDA staff in the U.S. and in Mexico, we have been able to take quick and decisive action to respond to the spread of this deadly pest.”
 """.strip()
 
-# Random Korean text (to test non-English compression)
-korean_text = r"""
-정직한 사실 위에, 공정한 시선을 더하다
-Herald Korea Times
+# Random cn text (to test non-English compression)
+cn_text = r"""
+相比于长句子，短句子更容易被人理解，也让审稿专家和读者可以更好地理解你文章的主旨。
 
-헤럴드코리아타임즈는 정치, 경제, 사회, 문화 등 한국 사회 전반의 주요 이슈를 심도 있게 다루는 종합 온라인 신문사입니다.
+我个人在做审稿人的过程中，最怕遇到的就是长难句，看好几遍都弄不明白是啥意思，从句里套从句。
 
-우리는 단순히 뉴스를 전달하는 것이 아니라, 사실(Fact)에 기반한 양측의 시각을 균형 있게 조명하며, 독자 여러분이 스스로 판단할 수 있는 ‘정보의 균형’을 제공합니다.
+在SCI的写作过程中一定会用到连贯词，比如说表达平行或递进关系、目的或因果关系、举例关系、顺序关系、解释说明关系、总结关系。
 
-한국 언론의 오랜 문제로 지적되어 온 정치적 편향, 이념적 왜곡에서 벗어나
-오직 정직함과 공정함을 원칙으로 삼는 언론을 지향합니다.
-어느 한쪽의 주장만을 확대하거나 감추지 않고,
-**모든 쟁점에 대해 ‘무엇이 쟁점인지’, ‘누가 무엇을 주장하는지’, ‘사실은 무엇인지’**를 명확히 전달하는 데 집중합니다.
+不同的连贯词有不同的含义，如果用错会直接影响到句子的含义，进而影响到审稿人和读者对文章的理解。
 """.strip()
 
 # Random piece of code
@@ -151,7 +147,7 @@ val_text = "\n".join(val_docs)
 
 all_text = [
     ("news", news_text),
-    ("korean", korean_text),
+    ("cn", cn_text),
     ("code", code_text),
     ("math", math_text),
     ("science", science_text),

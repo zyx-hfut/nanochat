@@ -3,7 +3,7 @@
 # See speedrun.sh for more comments
 
 export OMP_NUM_THREADS=1
-export NANOCHAT_BASE_DIR="$HOME/.cache/nanochat"
+export NANOCHAT_BASE_DIR="./.cache/nanochat"
 mkdir -p $NANOCHAT_BASE_DIR
 
 # uv
@@ -13,15 +13,12 @@ uv sync --extra gpu
 source .venv/bin/activate
 
 # Tokenizer
-python -m nanochat.dataset -n 240
+# python -m nanochat.dataset -n 240X
 python -m scripts.tok_train --max_chars=2000000000 --vocab_size=32768
 
 # Depths to train (the "miniseries")
-DEPTHS=(10 11 12 13 14 15 16 17 18 19 20)
-# Hardware
-NPROC_PER_NODE="${NPROC_PER_NODE:-8}"
+DEPTHS=(22)
 # Logging
-WANDB_RUN="${WANDB_RUN:-jan7_miniseries}"
 
 RESULTS_DIR="$NANOCHAT_BASE_DIR/jan7_miniseries_results"
 mkdir -p "$RESULTS_DIR"
@@ -37,26 +34,29 @@ log() {
 }
 
 log "=============================================="
-log "Jan 7 Miniseries Training"
+log "Mini IKM Training"
 log "=============================================="
 
 for d in "${DEPTHS[@]}"; do
     log "Training d=$d..."
 
-    TAG="jan7_miniseries_d${d}"
+    TAG="mini_ikm_d${d}"
     START_TIME=$(date +%s)
 
     # Train the model with natural horizon (target_param_data_ratio default)
     # No --target_flops, let it use the default ratio from base_train
-    torchrun --standalone --nproc_per_node=$NPROC_PER_NODE -m scripts.base_train -- \
+    nohup python -u -m scripts.base_train -- \
         --depth=$d \
-        --target_param_data_ratio=8 \
-        --run="${WANDB_RUN}_d${d}" \
+        --target_param_data_ratio=10 \
+        --run="dummy" \
+        --device_type="cuda" \
+        --device_batch_size=8 \
         --model_tag="${TAG}" \
+        --warmup_ratio=0.01 \
         --core_metric_every=999999 \
         --core_metric_max_per_task=-1 \
-        --sample_every=-1 \
-        --save_every=-1 \
+        --sample_every=2000 \
+        --save_every=2000 \
         2>&1 | tee "$RESULTS_DIR/${TAG}_train.log"
 
     END_TIME=$(date +%s)

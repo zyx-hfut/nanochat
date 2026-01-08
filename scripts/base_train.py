@@ -17,8 +17,8 @@ import argparse
 import time
 from contextlib import nullcontext
 
-import wandb
 import torch
+from torch.utils.tensorboard import SummaryWriter
 
 from nanochat.gpt import GPT, GPTConfig
 from nanochat.dataloader import tokenizing_distributed_data_loader, tokenizing_distributed_data_loader_with_state
@@ -81,9 +81,6 @@ autocast_ctx = torch.amp.autocast(device_type=device_type, dtype=torch.bfloat16)
 synchronize = torch.cuda.synchronize if device_type == "cuda" else lambda: None
 get_max_memory = torch.cuda.max_memory_allocated if device_type == "cuda" else lambda: 0
 
-# wandb logging init
-use_dummy_wandb = args.run == "dummy" or not master_process
-wandb_run = DummyWandb() if use_dummy_wandb else wandb.init(project="nanochat", name=args.run, config=user_config)
 
 # Tokenizer will be useful for evaluation, also we need the vocab size
 tokenizer = get_tokenizer()
@@ -146,6 +143,15 @@ model.init_weights() # All tensors get initialized
 base_dir = get_base_dir()
 output_dirname = args.model_tag if args.model_tag else f"d{args.depth}" # e.g. d12
 checkpoint_dir = os.path.join(base_dir, "base_checkpoints", output_dirname)
+
+if master_process:
+    tb_log_dir = os.path.join(base_dir, "runs", run) # 日志将保存在 ~/.cache/nanochat/runs/run_name 下
+    os.makedirs(tb_log_dir, exist_ok=True)
+    tb_writer = SummaryWriter(log_dir=tb_log_dir)
+    print0(f"TensorBoard logging to: {tb_log_dir}")
+else:
+    tb_writer = None
+
 resuming = args.resume_from_step != -1
 if resuming:
     print0(f"Resuming optimization from step {args.resume_from_step}")
@@ -261,12 +267,10 @@ while True:
         print0(f"Step {step:05d} | Validation bpb: {val_bpb:.4f}")
         if val_bpb < min_val_bpb:
             min_val_bpb = val_bpb
-        wandb_run.log({
-            "step": step,
-            "total_training_flops": flops_so_far,
-            "total_training_time": total_training_time,
-            "val/bpb": val_bpb,
-        })
+        if master_process:
+            tb_writer.add_scalar("val/bpb", val_bpb, step)
+        model.train()
+
         model.train()
 
     # once in a while: estimate the CORE metric (all ranks participate)
@@ -277,12 +281,8 @@ while True:
         with autocast_ctx:
             results = evaluate_model(orig_model, tokenizer, device, max_per_task=args.core_metric_max_per_task)
         print0(f"Step {step:05d} | CORE metric: {results['core_metric']:.4f}")
-        wandb_run.log({
-            "step": step,
-            "total_training_flops": flops_so_far,
-            "core_metric": results["core_metric"],
-            "centered_results": results["centered_results"],
-        })
+        if master_process:
+            tb_writer.add_scalar("eval/core_metric", results["core_metric"], step)
         model.train()
 
     # once in a while: sample from the model (only on master process)
@@ -402,8 +402,14 @@ while True:
         }
         if grad_clip_enabled:
             log_data["train/grad_norm"] = grad_norm
-        wandb_run.log(log_data)
-
+        if master_process:
+            tb_writer.add_scalar("train/loss", debiased_smooth_loss, step)
+            tb_writer.add_scalar("train/lrm", lrm, step)
+            tb_writer.add_scalar("train/dt_ms", dt * 1000, step)
+            tb_writer.add_scalar("train/tok_per_sec", tok_per_sec, step)
+            tb_writer.add_scalar("train/mfu", mfu, step)
+            if grad_clip_enabled:
+                tb_writer.add_scalar("train/grad_norm", grad_norm, step)
     # state update
     step += 1
 
@@ -440,5 +446,4 @@ get_report().log(section="Base model training", data=[
 ])
 
 # cleanup
-wandb_run.finish() # wandb run finish
 compute_cleanup()
