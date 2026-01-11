@@ -165,7 +165,7 @@ Then count the occurrences of '{letter}':
         assistant_parts.append({"type": "text", "text": "\n\nLet me double check this using Python:\n\n"})
         # Part 3: Python tool call
         python_expr = f"'{word}'.count('{letter}')"
-        assistant_parts.append({"type": "python", "text": python_expr})
+        assistant_parts.append({"type": "text", "text": python_expr})
         # Part 4: Python output
         assistant_parts.append({"type": "python_output", "text": str(count)})
         # Part 5: Final answer
