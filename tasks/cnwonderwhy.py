@@ -44,7 +44,7 @@ class CNWonderWhy(Task):
             for sub in self.AVAILABLE_SUBSETS:
                 try:
                     # silence_warnings=True 可以减少打印
-                    d = load_dataset(f'path/{sub}', split="train")
+                    d = load_dataset(f'{path}/{sub}', split="train")
                     ds_list.append(d)
                 except Exception as e:
                     print(f"Warning: Failed to load subset {sub}: {e}")
@@ -53,7 +53,7 @@ class CNWonderWhy(Task):
             # 加载指定子集
             if subset not in self.AVAILABLE_SUBSETS:
                 print(f"Warning: {subset} not in known list, trying to load anyway...")
-            self.ds = load_dataset(f'path/{subset}', split="train")
+            self.ds = load_dataset(f'{path}/{subset}', split="train")
 
         # 2. 划分 Train / Test (因为原始只有 train)
         # 我们按照 95% 训练, 5% 测试进行切分
