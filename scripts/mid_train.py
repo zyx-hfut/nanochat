@@ -14,10 +14,10 @@ from collections import deque
 import os
 os.environ["PYTORCH_ALLOC_CONF"] = "expandable_segments:True"
 import time
-import wandb
+from torch.utils.tensorboard import SummaryWriter
 import torch
 from contextlib import nullcontext
-from nanochat.common import compute_init, compute_cleanup, print0, DummyWandb, get_base_dir, autodetect_device_type
+from nanochat.common import compute_init, compute_cleanup, print0, get_base_dir, autodetect_device_type
 from nanochat.tokenizer import get_token_bytes
 from nanochat.checkpoint_manager import save_checkpoint
 from nanochat.loss_eval import evaluate_bpb
@@ -29,7 +29,15 @@ from tasks.gsm8k import GSM8K
 from tasks.mmlu import MMLU
 from tasks.smoltalk import SmolTalk
 from tasks.customjson import CustomJSON
+
 from tasks.spellingbee import SimpleSpelling, SpellingBee
+
+
+# custom data
+from tasks.cninstruct import CNInstruct
+from tasks.cnwonderwhy import CNWonderWhy
+from tasks.everydaynothink import EverydayNoThink
+
 
 # -----------------------------------------------------------------------------
 # CLI arguments
@@ -72,9 +80,15 @@ autocast_ctx = torch.amp.autocast(device_type=device_type, dtype=ptdtype) if dev
 synchronize = torch.cuda.synchronize if device_type == "cuda" else lambda: None
 get_max_memory = torch.cuda.max_memory_allocated if device_type == "cuda" else lambda: 0
 
-# wandb logging init
-use_dummy_wandb = args.run == "dummy" or not master_process
-wandb_run = DummyWandb() if use_dummy_wandb else wandb.init(project="nanochat-mid", name=args.run, config=user_config)
+writer = None
+if master_process:
+    # 定义日志保存路径，通常是 runs/run_name
+    log_dir = os.path.join(get_base_dir(), "runs", "mid_train")
+    os.makedirs(log_dir, exist_ok=True)
+    writer = SummaryWriter(log_dir=log_dir)
+    # 可选：把配置参数保存为文本显示在 TensorBoard 中
+    writer.add_text("config", str(user_config))
+    print0(f"TensorBoard logging to: {log_dir}")
 
 # Load the model and tokenizer
 model, tokenizer, meta = load_model("base", device, phase="train", model_tag=args.model_tag, step=args.model_step)
@@ -107,7 +121,10 @@ for opt in optimizers:
 base_dir = get_base_dir()
 identity_conversations_filepath = os.path.join(base_dir, "identity_conversations.jsonl")
 train_dataset = TaskMixture([
-    SmolTalk(split="train"), # 460K rows of general conversations
+    SmolTalk(split="train", stop=500_000), # 460K rows of general conversations
+    EverydayNoThink(split="train")
+    CNInstruct(split="train",subset="all" ,stack_turns=3,stop=100_000),
+    CNWonderWhy(split="train",subset="general" ,stack_turns=3,stop=10_000),
     MMLU(subset="auxiliary_train", split="train"), # 100K rows of multiple choice problems drawn from ARC, MC_TEST, OBQA, RACE
     GSM8K(subset="main", split="train"), # 8K rows teaching simple math and (calculator) tool use
     CustomJSON(filepath=identity_conversations_filepath), # 1000 rows of synthetic identity conversations
@@ -116,7 +133,8 @@ train_dataset = TaskMixture([
     SpellingBee(size=80000, split="train"), # 80K rows of Spelling Bee (e.g. how many 'r' are in 'strawberry'?)
 ]) # total: 460K + 100K + 8K + 200K + 80K = 848K rows
 val_dataset = TaskMixture([
-    SmolTalk(split="test"), # 24K rows in test set
+    SmolTalk(split="test",stop=26_000), # 24K rows in test set
+    CNInstruct(split="test",subset="all" ,stack_turns=3,stop=10_000),
     MMLU(subset="all", split="test", stop=5200), # 14K rows in test set, use only 5.2K to match the train ratios
     GSM8K(subset="main", split="test", stop=420), # 1.32K rows in test set, use only 420 to match the train ratios
 ]) # total: 24K + 14K + 1.32K ~= 39K rows
@@ -208,12 +226,11 @@ while True:
         print0(f"Step {step:05d} | Validation bpb: {val_bpb:.4f}")
         if val_bpb < min_val_bpb:
             min_val_bpb = val_bpb
-        wandb_run.log({
-            "step": step,
-            "total_training_flops": flops_so_far,
-            "total_training_time": total_training_time,
-            "val/bpb": val_bpb,
-        })
+
+        if writer:
+            writer.add_scalar("val/bpb", val_bpb, step)
+            writer.add_scalar("stats/total_training_flops", flops_so_far, step)
+            writer.add_scalar("stats/total_training_time", total_training_time, step)
         model.train()
 
     # save checkpoint at the end of the run (only on master process)
@@ -287,16 +304,12 @@ while True:
         total_training_time += dt # only count the time after the first 10 steps
     print0(f"step {step:05d} ({pct_done:.2f}%) | loss: {debiased_smooth_loss:.6f} | lrm: {lrm:.2f} | dt: {dt * 1000:.2f}ms | tok/sec: {tok_per_sec:,} | mfu: {mfu:.2f} | total time: {total_training_time/60:.2f}m")
     if step % 10 == 0:
-        wandb_run.log({
-            "step": step,
-            "total_training_flops": flops_so_far,
-            "total_training_time": total_training_time,
-            "train/loss": debiased_smooth_loss,
-            "train/lrm": lrm,
-            "train/dt": dt,
-            "train/tok_per_sec": tok_per_sec,
-            "train/mfu": mfu,
-        })
+        if writer:
+            writer.add_scalar("train/loss", debiased_smooth_loss, step)
+            writer.add_scalar("train/lrm", lrm, step)
+            writer.add_scalar("train/dt", dt, step)
+            writer.add_scalar("train/tok_per_sec", tok_per_sec, step)
+            writer.add_scalar("train/mfu", mfu, step)
 
 # print a few more stats
 print0(f"Peak memory usage: {get_max_memory() / 1024 / 1024:.2f}MiB")
@@ -318,5 +331,4 @@ if not args.dry_run:
     ])
 
 # cleanup
-wandb_run.finish() # wandb run finish
 compute_cleanup()
