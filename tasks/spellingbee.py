@@ -34,7 +34,7 @@ from nanochat.common import download_file_with_lock
 # Letters of the alphabet
 LETTERS = "abcdefghijklmnopqrstuvwxyz"
 # A list of 370K English words of large variety
-WORD_LIST_URL = "https://raw.githubusercontent.com/dwyl/english-words/refs/heads/master/words_alpha.txt"
+WORD_LIST_URL = "/home/featurize/data/.cache/nanochat/words_alpha.txt"
 # A number bigger than 370K to separate train and test random seeds
 TEST_RANDOM_SEED_OFFSET = 10_000_000
 
@@ -83,33 +83,12 @@ USER_MSG_TEMPLATES = [
     "How many instances of {letter} in {word}",
     "Show me how many {letter} are in {word}",
     "Calculate the number of {letter} in {word}",
-    # Spanish
-    "¿Cuántas {letter} hay en {word}?",
-    "¿Cuántas veces aparece {letter} en {word}?",
-    "Cuenta las {letter} en {word}",
-    "¿Cuántas letras {letter} tiene {word}?",
     # Chinese (Simplified)
     "{word}中有多少个{letter}",
     "{word}里有几个{letter}",
     "数一下{word}中的{letter}",
     "{word}这个词里有多少{letter}",
-    # Korean
-    "{word}에 {letter}가 몇 개 있나요",
-    "{word}에서 {letter}의 개수는",
-    "{word}에 {letter}가 몇 번 나오나요",
-    "{word}라는 단어에 {letter}가 몇 개",
-    # French
-    "Combien de {letter} dans {word}",
-    "Combien de fois {letter} apparaît dans {word}",
-    "Compte les {letter} dans {word}",
-    # German
-    "Wie viele {letter} sind in {word}",
-    "Wie oft kommt {letter} in {word} vor",
-    "Zähle die {letter} in {word}",
-    # Japanese
-    "{word}に{letter}は何個ありますか",
-    "{word}の中に{letter}がいくつ",
-    "{word}に{letter}が何回出てくる",
+
 ]
 
 class SpellingBee(Task):
@@ -119,9 +98,7 @@ class SpellingBee(Task):
         assert split in ["train", "test"], "SpellingBee split must be train|test"
         self.size = size
         self.split = split
-        filename = WORD_LIST_URL.split("/")[-1]
-        word_list_path = download_file_with_lock(WORD_LIST_URL, filename)
-        with open(word_list_path, 'r', encoding='utf-8') as f:
+        with open(WORD_LIST_URL, 'r', encoding='utf-8') as f:
             words = [line.strip() for line in f]
         self.words = words
 
