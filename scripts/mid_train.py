@@ -122,7 +122,7 @@ base_dir = get_base_dir()
 identity_conversations_filepath = os.path.join(base_dir, "identity_conversations.jsonl")
 train_dataset = TaskMixture([
     SmolTalk(split="train", stop=500_000), # 460K rows of general conversations
-    EverydayNoThink(split="train")
+    EverydayNoThink(split="train"),
     CNInstruct(split="train",subset="all" ,stack_turns=3,stop=100_000),
     CNWonderWhy(split="train",subset="general" ,stack_turns=3,stop=10_000),
     MMLU(subset="auxiliary_train", split="train"), # 100K rows of multiple choice problems drawn from ARC, MC_TEST, OBQA, RACE
