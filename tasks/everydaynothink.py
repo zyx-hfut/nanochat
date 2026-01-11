@@ -7,7 +7,7 @@ class EverydayNoThink(Task):
 
     def __init__(self, split, **kwargs):
         super().__init__(**kwargs)
-        assert split in ["train_sft", "test_sft"], "SmolTalk split must be train|test"
+        assert split in ["train_sft", "test_sft"], "EverydayNoThink split must be train_sft|test_sft"
         self.ds = load_dataset("/home/featurize/data/everyday_conversation",split=split).shuffle(seed=42)
         self.length = len(self.ds)
 
