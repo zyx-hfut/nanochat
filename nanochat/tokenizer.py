@@ -18,9 +18,9 @@ SPECIAL_TOKENS = [
     "<|user_end|>",
     "<|assistant_start|>", # assistant messages
     "<|assistant_end|>",
-    "<think>", # assistant invokes python REPL tool
+    "<think>", 
     "</think>",
-    "<|output_start|>", # python REPL outputs back to assistant
+    "<|output_start|>", 
     "<|output_end|>",
 ]
 
@@ -294,7 +294,6 @@ class RustBPETokenizer:
         bos = self.get_bos_token_id()
         user_start, user_end = self.encode_special("<|user_start|>"), self.encode_special("<|user_end|>")
         assistant_start, assistant_end = self.encode_special("<|assistant_start|>"), self.encode_special("<|assistant_end|>")
-        python_start, python_end = self.encode_special("<|python_start|>"), self.encode_special("<|python_end|>")
         output_start, output_end = self.encode_special("<|output_start|>"), self.encode_special("<|output_end|>")
 
         # now we can tokenize the conversation
@@ -326,11 +325,7 @@ class RustBPETokenizer:
                         if part["type"] == "text":
                             # string part => simply add the tokens
                             add_tokens(value_ids, 1)
-                        elif part["type"] == "python":
-                            # python tool call => add the tokens inside <|python_start|> and <|python_end|>
-                            add_tokens(python_start, 1)
-                            add_tokens(value_ids, 1)
-                            add_tokens(python_end, 1)
+
                         elif part["type"] == "python_output":
                             # python output => add the tokens inside <|output_start|> and <|output_end|>
                             # none of these tokens are supervised because the tokens come from Python at test time
