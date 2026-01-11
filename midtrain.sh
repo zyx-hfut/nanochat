@@ -13,7 +13,9 @@ uv sync --extra gpu
 source .venv/bin/activate
 
 RESULTS_DIR="$NANOCHAT_BASE_DIR/ikm_mini_results"
-
+log() {
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1"
+}
 log "=============================================="
 log "Mini IKM MID Training"
 log "=============================================="
