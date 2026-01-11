@@ -55,29 +55,9 @@ class GSM8K(Task):
         question = row['question'] # string of the question prompt
         answer = row['answer'] # string of the full solution and the answer after #### marker
         # Create and return the Conversation object
-        # This is tricky because GSM8K uses tool calls, which we need to parse here.
-        assistant_message_parts = []
-        parts = re.split(r'(<<[^>]+>>)', answer)
-        for part in parts:
-            if part.startswith('<<') and part.endswith('>>'):
-                # This is a calculator tool call
-                inner = part[2:-2]  # Remove << >>
-                # Split on = to get expression and result
-                if '=' in inner:
-                    expr, result = inner.rsplit('=', 1)
-                else:
-                    expr, result = inner, ""
-                # Add the tool call as a part
-                assistant_message_parts.append({"type": "python", "text": expr})
-                # Add the result as a part
-                assistant_message_parts.append({"type": "python_output", "text": result})
-            else:
-                # Regular text in between tool calls
-                assistant_message_parts.append({"type": "text", "text": part})
-        # Now put it all together
         messages = [
             {"role": "user", "content": question}, # note: simple string
-            {"role": "assistant", "content": assistant_message_parts}, # note: list of parts (as dicts)
+            {"role": "assistant", "content": answer}, # note: list of parts (as dicts)
         ]
         conversation = {
             "messages": messages,
