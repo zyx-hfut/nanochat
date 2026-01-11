@@ -13,7 +13,7 @@ import argparse
 import os
 os.environ["PYTORCH_ALLOC_CONF"] = "expandable_segments:True"
 
-import wandb
+from torch.utils.tensorboard import SummaryWriter
 import torch
 import torch.distributed as dist
 from contextlib import nullcontext
@@ -29,8 +29,9 @@ from tasks.arc import ARC
 from tasks.gsm8k import GSM8K
 from tasks.smoltalk import SmolTalk
 from tasks.customjson import CustomJSON
-from tasks.spellingbee import SimpleSpelling, SpellingBee
-
+from tasks.cninstruct import CNInstruct
+from tasks.cnwonderwhy import CNWonderWhy
+from tasks.everydaynothink import EverydayNoThink
 # -----------------------------------------------------------------------------
 # CLI arguments
 parser = argparse.ArgumentParser(description="Supervised finetuning for chat")
@@ -71,9 +72,14 @@ master_process = ddp_rank == 0
 ptdtype = torch.float32 if args.dtype == 'float32' else torch.bfloat16
 autocast_ctx = torch.amp.autocast(device_type=device_type, dtype=ptdtype) if device_type == "cuda" else nullcontext()
 
-# wandb logging init
-use_dummy_wandb = args.run == "dummy" or not master_process
-wandb_run = DummyWandb() if use_dummy_wandb else wandb.init(project="nanochat-sft", name=args.run, config=user_config, save_code=True)
+writer = None
+if master_process and args.run != "dummy":
+    log_dir = os.path.join(get_base_dir(), "runs", "sft_runs")
+    os.makedirs(log_dir, exist_ok=True)
+    writer = SummaryWriter(log_dir=log_dir)
+    # 可选：将配置参数保存为文本
+    writer.add_text("config", str(user_config))
+    print0(f"TensorBoard logging to: {log_dir}")
 
 # Load the model and tokenizer
 model, tokenizer, meta = load_model(args.source, device, phase="train", model_tag=args.model_tag, step=args.model_step)
@@ -88,13 +94,17 @@ train_ds = TaskMixture([
     ARC(subset="ARC-Easy", split="train"), # 2.3K rows
     ARC(subset="ARC-Challenge", split="train"), # 1.1K rows
     GSM8K(subset="main", split="train"), # 8K rows
-    SmolTalk(split="train", stop=10_000), # 10K rows of smoltalk
+    SmolTalk(split="train"), # 10K rows of smoltalk
+    EverydayNoThink(split="train_sft"),
+    CNInstruct(split="train",subset="all" ,stack_turns=2),
+    CNWonderWhy(split="train",subset="general" ,stack_turns=2),
     CustomJSON(filepath=identity_conversations_filepath), # 1K rows of synthetic identity conversations
-    SimpleSpelling(size=300, split="train"), # 300 rows of Simple Spelling (e.g. spell the word 'apple')
-    SpellingBee(size=300, split="train"), # 300 rows of Spelling Bee (e.g. how many 'r' are in 'strawberry'?)
 ]) # 2.3K + 1.1K + 8K + 10K + 1K + 0.3K + 0.3K = 23K rows
-val_ds = SmolTalk(split="test") # general conversations, 24K rows (though we don't actually use all of it)
-
+# val_ds = SmolTalk(split="test") # general conversations, 24K rows (though we don't actually use all of it)
+val_ds = TaskMixture([
+    SmolTalk(split="test"), # 24K rows in test set
+    CNInstruct(split="test",subset="all" ,stack_turns=2),
+]) 
 # -----------------------------------------------------------------------------
 # DataLoader
 
@@ -190,10 +200,9 @@ for step in range(num_iterations):
             dist.all_reduce(val_loss, op=dist.ReduceOp.AVG) # average over ranks
         val_loss = val_loss.item()
         print0(f"Step {step:05d} | Validation loss: {val_loss:.6f}")
-        wandb_run.log({
-            "step": step,
-            "val_loss": val_loss,
-        })
+
+        if writer:
+            writer.add_scalar("val/loss", val_loss, step)
         model.train()
 
     # evaluate accuracy of the multiple choice tasks (which are quick to run)
@@ -206,10 +215,10 @@ for step in range(num_iterations):
             metrics["arc_easy_acc"] = run_chat_eval("ARC-Easy", model, tokenizer, engine, batch_size=args.device_batch_size*2, max_problems=args.eval_metrics_max_problems)
         metrics_str = ', '.join(f'{k}: {v:.6f}' for k, v in metrics.items())
         print0(f"Step {step:05d} | {metrics_str}")
-        wandb_run.log({
-            "step": step,
-            **metrics,
-        })
+
+        if writer:
+            for k, v in metrics.items():
+                writer.add_scalar(f"val/{k}", v, step)
         model.train()
 
     if last_step:
@@ -243,12 +252,11 @@ for step in range(num_iterations):
     train_loss_item = train_loss.item()
     num_tokens_item = num_tokens.item()
     print0(f"Step {step:05d}/{num_iterations:05d} | Training loss: {train_loss_item:.6f}| lrm: {lrm:.6f}| num_tokens: {num_tokens_item:,}")
-    wandb_run.log({
-        "step": step,
-        "lrm": lrm,
-        "train_loss": train_loss_item,
-        "num_tokens": num_tokens_item,
-    })
+
+    if writer:
+        writer.add_scalar("train/loss", train_loss_item, step)
+        writer.add_scalar("train/lrm", lrm, step)
+        writer.add_scalar("train/num_tokens", num_tokens_item, step)
     step += 1
 
 # Save the model at the end of the run
@@ -285,5 +293,6 @@ get_report().log(section="Chat SFT", data=[
 ])
 
 # Cleanup
-wandb_run.finish()
+if writer:
+    writer.close()
 compute_cleanup()
