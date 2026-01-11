@@ -18,8 +18,8 @@ SPECIAL_TOKENS = [
     "<|user_end|>",
     "<|assistant_start|>", # assistant messages
     "<|assistant_end|>",
-    "<|python_start|>", # assistant invokes python REPL tool
-    "<|python_end|>",
+    "<think>", # assistant invokes python REPL tool
+    "</think>",
     "<|output_start|>", # python REPL outputs back to assistant
     "<|output_end|>",
 ]
