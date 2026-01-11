@@ -14,13 +14,14 @@ import requests
 import pyarrow.parquet as pq
 from multiprocessing import Pool
 
+import random
 from nanochat.common import get_base_dir
 
 # -----------------------------------------------------------------------------
 # The specifics of the current pretraining dataset
 
-CN_DATA_DIR = "/path/to/your/chinese_data"  # 中文文件夹路径
-EN_DATA_DIR = "/path/to/your/english_data"  # 英文文件夹路径
+CN_DATA_DIR = "/home/featurize/data/cn_data"  # 中文文件夹路径
+EN_DATA_DIR = "/home/featurize/data/english_data"  # 英文文件夹路径
 
 SHUFFLE_SEED = 42
 

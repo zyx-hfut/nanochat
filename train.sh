@@ -14,7 +14,7 @@ source .venv/bin/activate
 
 # Tokenizer
 # python -m nanochat.dataset -n 240X
-python -m scripts.tok_train --max_chars=40_000_000_000 --vocab_size=65536
+# python -m scripts.tok_train --max_chars=40_000_000_000 --vocab_size=65536
 
 # Depths to train (the "miniseries")
 DEPTHS=(20)
@@ -45,19 +45,7 @@ for d in "${DEPTHS[@]}"; do
 
     # Train the model with natural horizon (target_param_data_ratio default)
     # No --target_flops, let it use the default ratio from base_train
-    nohup python -u -m scripts.base_train -- \
-        --depth=$d \
-        --target_param_data_ratio=16 \
-        --run="dummy" \
-        --device_type="cuda" \
-        --device_batch_size=8 \
-        --model_tag="${TAG}" \
-        --warmup_ratio=0.01 \
-        --core_metric_every=999999 \
-        --core_metric_max_per_task=-1 \
-        --sample_every=2000 \
-        --save_every=4000 \
-        > logs/base_train.log 2>&1 | tee "$RESULTS_DIR/${TAG}_train.log"
+   python -u -m scripts.base_train --depth=$d --target_param_data_ratio=16 --device_type="cuda" --device_batch_size=4 --model_tag="${TAG}" --warmup_ratio=0.01 --core_metric_every=999999 --core_metric_max_per_task=-1 --sample_every=2000 --save_every=4000 2>&1 | tee "$RESULTS_DIR/${TAG}_train.log"
 
     END_TIME=$(date +%s)
     TRAIN_TIME=$((END_TIME - START_TIME))
