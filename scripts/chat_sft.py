@@ -96,14 +96,14 @@ train_ds = TaskMixture([
     GSM8K(subset="main", split="train"), # 8K rows
     SmolTalk(split="train"), # 10K rows of smoltalk
     EverydayNoThink(split="train_sft"),
-    CNInstruct(split="train",subset="all" ,stack_turns=2),
-    CNWonderWhy(split="train",subset="general" ,stack_turns=2),
+    CNInstruct(split="train",subset="all" ,stack_turns=3),
+    CNWonderWhy(split="train",subset="general" ,stack_turns=3,stop=100_000),
     CustomJSON(filepath=identity_conversations_filepath), # 1K rows of synthetic identity conversations
 ]) # 2.3K + 1.1K + 8K + 10K + 1K + 0.3K + 0.3K = 23K rows
 # val_ds = SmolTalk(split="test") # general conversations, 24K rows (though we don't actually use all of it)
 val_ds = TaskMixture([
     SmolTalk(split="test"), # 24K rows in test set
-    CNInstruct(split="test",subset="all" ,stack_turns=2),
+    CNInstruct(split="test",subset="all" ,stack_turns=3),
 ]) 
 # -----------------------------------------------------------------------------
 # DataLoader
