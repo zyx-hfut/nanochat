@@ -94,9 +94,9 @@ train_ds = TaskMixture([
     ARC(subset="ARC-Easy", split="train"), # 2.3K rows
     ARC(subset="ARC-Challenge", split="train"), # 1.1K rows
     GSM8K(subset="main", split="train"), # 8K rows
-    SmolTalk(split="train"), # 10K rows of smoltalk
+    SmolTalk(split="train",stop=200_000), # 10K rows of smoltalk
     EverydayNoThink(split="train_sft"),
-    CNInstruct(split="train",subset="all" ,stack_turns=3),
+    CNInstruct(split="train",subset="all" ,stack_turns=3, stop=200_000),
     CNWonderWhy(split="train",subset="general" ,stack_turns=3,stop=100_000),
     CustomJSON(filepath=identity_conversations_filepath), # 1K rows of synthetic identity conversations
 ]) # 2.3K + 1.1K + 8K + 10K + 1K + 0.3K + 0.3K = 23K rows
