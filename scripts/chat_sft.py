@@ -102,7 +102,7 @@ train_ds = TaskMixture([
     SmolTalkCN(split="train"),
     EverydayNoThink(split="train_sft"),
     CNInstruct(split="train",subset="all" ,stack_turns=1,stop=1000_000),
-    CNWonderWhy(split="train",subset="general" ,stack_turns=1,stop=1000_000),
+    CNWonderWhy(split="train",subset="general" ,stack_turns=1,stop=200_000),
     WildChat(split="Chinese"),
     WildChat(split="English"),
     AlpacaZH(split="train",stack_turns=1),
