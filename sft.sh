@@ -23,7 +23,7 @@ log "=============================================="
 
 TAG="mini_ikm_d20"
 
-python -u -m scripts.chat_sft --device_type="cuda" --device_batch_size=2 --model_tag="${TAG}" --eval_every=99999 --num_epochs=1 2>&1 | tee "$RESULTS_DIR/${TAG}_sft_train.log"
+python -u -m scripts.chat_sft --device_type="cuda" --device_batch_size=2 --model_tag="${TAG}" --eval_metrics_every=999999 --num_epochs=1 2>&1 | tee "$RESULTS_DIR/${TAG}_sft_train.log"
 
 log "=============================================="
 log "IKM_mini sft training Complete!"

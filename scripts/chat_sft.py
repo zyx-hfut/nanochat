@@ -32,6 +32,9 @@ from tasks.customjson import CustomJSON
 from tasks.cninstruct import CNInstruct
 from tasks.cnwonderwhy import CNWonderWhy
 from tasks.everydaynothink import EverydayNoThink
+from tasks.wildchat import WildChat
+from tasks.alpacaen import Alpaca
+from tasks.alpacazh import AlpacaZH
 # -----------------------------------------------------------------------------
 # CLI arguments
 parser = argparse.ArgumentParser(description="Supervised finetuning for chat")
@@ -57,7 +60,7 @@ parser.add_argument("--matrix_lr", type=float, default=0.02, help="learning rate
 parser.add_argument("--weight_decay", type=float, default=0.0, help="weight decay for embedding/unembedding parameters (Adam)")
 parser.add_argument("--init_lr_frac", type=float, default=0.02, help="initial LR as fraction of base LR")
 # Evaluation
-parser.add_argument("--eval_every", type=int, default=100, help="evaluate val loss every N steps")
+parser.add_argument("--eval_every", type=int, default=1000, help="evaluate val loss every N steps")
 parser.add_argument("--eval_steps", type=int, default=100, help="number of batches for val loss evaluation")
 parser.add_argument("--eval_metrics_every", type=int, default=200, help="evaluate accuracy metrics every N steps")
 parser.add_argument("--eval_metrics_max_problems", type=int, default=1024, help="max problems per metric evaluation")
@@ -93,18 +96,26 @@ identity_conversations_filepath = os.path.join(get_base_dir(), "identity_convers
 train_ds = TaskMixture([
     ARC(subset="ARC-Easy", split="train"), # 2.3K rows
     ARC(subset="ARC-Challenge", split="train"), # 1.1K rows
-    GSM8K(subset="main", split="train"), # 8K rows
-    SmolTalk(split="train",stop=200_000), # 10K rows of smoltalk
+    # GSM8K(subset="main", split="train"), # 8K rows
+    SmolTalk(split="train"), # 10K rows of smoltalk
     EverydayNoThink(split="train_sft"),
-    CNInstruct(split="train",subset="all" ,stack_turns=3, stop=200_000),
-    CNWonderWhy(split="train",subset="general" ,stack_turns=3,stop=100_000),
-    CustomJSON(filepath=identity_conversations_filepath), # 1K rows of synthetic identity conversations
-]) # 2.3K + 1.1K + 8K + 10K + 1K + 0.3K + 0.3K = 23K rows
-# val_ds = SmolTalk(split="test") # general conversations, 24K rows (though we don't actually use all of it)
-val_ds = TaskMixture([
-    SmolTalk(split="test"), # 24K rows in test set
-    CNInstruct(split="test",subset="all" ,stack_turns=3),
+    CNInstruct(split="train",subset="all" ,stack_turns=3),
+    CNInstruct(split="train",subset="all" ,stack_turns=1),
+    CNWonderWhy(split="train",subset="general" ,stack_turns=3),
+    CNWonderWhy(split="train",subset="general" ,stack_turns=1),
+    WildChat(split="Chinese"),
+    WildChat(split="English"),
+    AlpacaZH(split="train",stack_turns=1),
+    AlpacaZH(split="train",stack_turns=3),
+    Alpaca(split="train",stack_turns=1),
+    Alpaca(split="train",stack_turns=3),
+    CustomJSON(filepath=identity_conversations_filepath),
+    CustomJSON(filepath=identity_conversations_filepath),
 ]) 
+val_ds = SmolTalk(split="test") # general conversations, 24K rows (though we don't actually use all of it)
+# val_ds = TaskMixture([
+#     SmolTalk(split="test"), # 24K rows in test set
+# ]) 
 # -----------------------------------------------------------------------------
 # DataLoader
 
@@ -206,20 +217,20 @@ for step in range(num_iterations):
         model.train()
 
     # evaluate accuracy of the multiple choice tasks (which are quick to run)
-    if last_step or (step > 0 and step % args.eval_metrics_every == 0):
-        model.eval()
-        metrics = {}
-        with torch.no_grad(), autocast_ctx:
-            # note that because these are inside no_grad, we can usually afford to at least ~2X the batch size
-            metrics["mmlu_acc"] = run_chat_eval("MMLU", model, tokenizer, engine, batch_size=args.device_batch_size*2, max_problems=args.eval_metrics_max_problems)
-            metrics["arc_easy_acc"] = run_chat_eval("ARC-Easy", model, tokenizer, engine, batch_size=args.device_batch_size*2, max_problems=args.eval_metrics_max_problems)
-        metrics_str = ', '.join(f'{k}: {v:.6f}' for k, v in metrics.items())
-        print0(f"Step {step:05d} | {metrics_str}")
+    # if last_step or (step > 0 and step % args.eval_metrics_every == 0):
+    #     model.eval()
+    #     metrics = {}
+    #     with torch.no_grad(), autocast_ctx:
+    #         # note that because these are inside no_grad, we can usually afford to at least ~2X the batch size
+    #         metrics["mmlu_acc"] = run_chat_eval("MMLU", model, tokenizer, engine, batch_size=args.device_batch_size*2, max_problems=args.eval_metrics_max_problems)
+    #         metrics["arc_easy_acc"] = run_chat_eval("ARC-Easy", model, tokenizer, engine, batch_size=args.device_batch_size*2, max_problems=args.eval_metrics_max_problems)
+    #     metrics_str = ', '.join(f'{k}: {v:.6f}' for k, v in metrics.items())
+    #     print0(f"Step {step:05d} | {metrics_str}")
 
-        if writer:
-            for k, v in metrics.items():
-                writer.add_scalar(f"val/{k}", v, step)
-        model.train()
+    #     if writer:
+    #         for k, v in metrics.items():
+    #             writer.add_scalar(f"val/{k}", v, step)
+    #     model.train()
 
     if last_step:
         break
@@ -274,7 +285,7 @@ if master_process:
         {
             "step": step,
             "val_loss": val_loss,
-            **metrics,
+            # **metrics,
             "model_config": model_config_kwargs,
         }
     )
