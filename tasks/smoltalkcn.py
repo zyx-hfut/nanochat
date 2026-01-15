@@ -1,13 +1,11 @@
 """
 SmolTalk by HuggingFace. Good "general" conversational dataset.
-https://huggingface.co/datasets/HuggingFaceTB/smol-smoltalk
-We use the "smol" version, which is more appropriate for smaller models.
 """
 
 from datasets import load_dataset
 from tasks.common import Task
 
-class SmolTalk(Task):
+class SmolTalkCN(Task):
     """ smol-smoltalk dataset. train is 460K rows, test is 24K rows. """
     """ smoltalk dataset. train is 1.01M rows, test is 54K rows. """
 
@@ -22,7 +20,7 @@ class SmolTalk(Task):
 
     def get_example(self, index):
         row = self.ds[index]
-        messages = row["messages"]
+        messages = row["conversations"]
         # ---------------------------------------------------------------------
         # sanity checking asserts here
         # TODO: we could remove these asserts later, for now just don't want any footguns

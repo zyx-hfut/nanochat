@@ -28,6 +28,7 @@ from tasks.common import TaskMixture
 from tasks.arc import ARC
 from tasks.gsm8k import GSM8K
 from tasks.smoltalk import SmolTalk
+from tasks.smoltalkcn import SmolTalkCN
 from tasks.customjson import CustomJSON
 from tasks.cninstruct import CNInstruct
 from tasks.cnwonderwhy import CNWonderWhy
@@ -98,10 +99,11 @@ train_ds = TaskMixture([
     ARC(subset="ARC-Challenge", split="train"), # 1.1K rows
     # GSM8K(subset="main", split="train"), # 8K rows
     SmolTalk(split="train"), # 10K rows of smoltalk
+    SmolTalkCN(split="train"),
     EverydayNoThink(split="train_sft"),
-    CNInstruct(split="train",subset="all" ,stack_turns=3),
+    CNInstruct(split="train",subset="all" ,stack_turns=3,stop=200_000),
     CNInstruct(split="train",subset="all" ,stack_turns=1),
-    CNWonderWhy(split="train",subset="general" ,stack_turns=3),
+    CNWonderWhy(split="train",subset="general" ,stack_turns=3,stop=200_000),
     CNWonderWhy(split="train",subset="general" ,stack_turns=1),
     WildChat(split="Chinese"),
     WildChat(split="English"),
