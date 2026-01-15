@@ -98,11 +98,11 @@ train_ds = TaskMixture([
     ARC(subset="ARC-Easy", split="train"), # 2.3K rows
     ARC(subset="ARC-Challenge", split="train"), # 1.1K rows
     # GSM8K(subset="main", split="train"), # 8K rows
-    SmolTalk(split="train"), # 10K rows of smoltalk
+    SmolTalk(split="train",stop=1000_000), # 10K rows of smoltalk
     SmolTalkCN(split="train"),
     EverydayNoThink(split="train_sft"),
-    CNInstruct(split="train",subset="all" ,stack_turns=1),
-    CNWonderWhy(split="train",subset="general" ,stack_turns=1),
+    CNInstruct(split="train",subset="all" ,stack_turns=1,stop=1000_000),
+    CNWonderWhy(split="train",subset="general" ,stack_turns=1,stop=1000_000),
     WildChat(split="Chinese"),
     WildChat(split="English"),
     AlpacaZH(split="train",stack_turns=1),
