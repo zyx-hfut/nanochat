@@ -4,7 +4,7 @@
 # bash runs/speedrun.sh
 # screen -L -Logfile runs/speedrun.log -S speedrun bash runs/speedrun.sh
 
-
+export UV_INDEX_URL=https://pypi.tuna.tsinghua.edu.cn/simple
 export OMP_NUM_THREADS=1
 export NANOCHAT_BASE_DIR="./.cache/nanochat"
 mkdir -p $NANOCHAT_BASE_DIR
