@@ -9,9 +9,6 @@ export OMP_NUM_THREADS=1
 export NANOCHAT_BASE_DIR="./.cache/nanochat"
 mkdir -p $NANOCHAT_BASE_DIR
 
-command -v uv &> /dev/null || curl -LsSf https://astral.sh/uv/install.sh | sh
-[ -d ".venv" ] || uv venv
-uv sync --extra gpu
 source .venv/bin/activate
 
 if [ -z "$WANDB_RUN" ]; then
@@ -24,10 +21,10 @@ fi
 
 # download 2.3MB of synthetic identity conversations to impart a personality to nanochat
 # see dev/gen_synthetic_data.py for details on how this data was prepared and to get a sense of how you can easily tune it
-curl -L -o $NANOCHAT_BASE_DIR/identity_conversations.jsonl https://karpathy-public.s3.us-west-2.amazonaws.com/identity_conversations.jsonl
+
 
 # run SFT and eval the model
-python -m scripts.chat_sft -- --device-batch-size=8 --run=$WANDB_RUN
+python -m scripts.chat_sft -- --device-batch-size=16 --run=$WANDB_RUN
 python -m scripts.chat_eval -- -i sft
 
 # chat with the model over CLI! Leave out the -p to chat interactively

@@ -2,16 +2,13 @@
 
 
 # bash runs/speedrun.sh
-# screen -L -Logfile runs/speedrun.log -S speedrun bash runs/speedrun.sh
+# screen -L -Logfile runs/part2.log -S part2 bash runs/part2.sh
 
 export UV_INDEX_URL=https://pypi.tuna.tsinghua.edu.cn/simple
 export OMP_NUM_THREADS=1
-export NANOCHAT_BASE_DIR="./.cache/nanochat"
+export NANOCHAT_BASE_DIR="/mnt/data/nanochat/.cache/nanochat"
 mkdir -p $NANOCHAT_BASE_DIR
 
-command -v uv &> /dev/null || curl -LsSf https://astral.sh/uv/install.sh | sh
-[ -d ".venv" ] || uv venv
-uv sync --extra gpu
 source .venv/bin/activate
 
 if [ -z "$WANDB_RUN" ]; then
@@ -25,6 +22,6 @@ echo "Waiting for dataset download to complete..."
 wait $DATASET_DOWNLOAD_PID
 
 # d24 model (slightly undertrained to beat GPT-2 => decrease data:params ratio from compute optimal 10.5 (default) to 9.5)
-python -m scripts.base_train -- --depth=24 --target-param-data-ratio=9.5 --device-batch-size=8 --fp8 --run=$WANDB_RUN
+python -m scripts.base_train --depth=20 --target-param-data-ratio=9.5 --device-batch-size=16 --fp8 --run=$WANDB_RUN --sample-every=500
 # evaluate the model: CORE metric, BPB on train/val, and draw samples
-python -m scripts.base_eval -- --device-batch-size=8
+python -m scripts.base_eval --device-batch-size=16
