@@ -19,7 +19,7 @@ class MMLU(Task):
             assert split == "train", "auxiliary_train must be split into train"
         self.subset = subset
         self.split = split
-        self.ds = load_dataset("cais/mmlu", subset, split=split).shuffle(seed=42)
+        self.ds = load_dataset("/root/autodl-tmp/nanochat/.cache/nanochat/mmlu", subset, split=split).shuffle(seed=42)
         if subset == "auxiliary_train":
             # I don't understand why but the auxiliary_train rows have some weird additional 'train' wrapper
             self.ds = self.ds.map(lambda row: row['train'], remove_columns=['train'])

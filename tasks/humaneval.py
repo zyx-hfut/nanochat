@@ -48,7 +48,7 @@ class HumanEval(Task):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.ds = load_dataset("openai/openai_humaneval", split="test").shuffle(seed=42)
+        self.ds = load_dataset("/root/autodl-tmp/nanochat/.cache/nanochat/humaneval", split="test").shuffle(seed=42)
 
     @property
     def eval_type(self):

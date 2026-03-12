@@ -34,7 +34,7 @@ from nanochat.common import download_file_with_lock
 # Letters of the alphabet
 LETTERS = "abcdefghijklmnopqrstuvwxyz"
 # A list of 370K English words of large variety
-WORD_LIST_URL = "https://raw.githubusercontent.com/dwyl/english-words/refs/heads/master/words_alpha.txt"
+WORD_LIST_URL = "/root/autodl-tmp/nanochat/.cache/nanochat/words_alpha.txt"
 # A number bigger than 370K to separate train and test random seeds
 TEST_RANDOM_SEED_OFFSET = 10_000_000
 
@@ -120,8 +120,8 @@ class SpellingBee(Task):
         self.size = size
         self.split = split
         filename = WORD_LIST_URL.split("/")[-1]
-        word_list_path = download_file_with_lock(WORD_LIST_URL, filename)
-        with open(word_list_path, 'r', encoding='utf-8') as f:
+        # word_list_path = download_file_with_lock(WORD_LIST_URL, filename)
+        with open(WORD_LIST_URL, 'r', encoding='utf-8') as f:
             words = [line.strip() for line in f]
         self.words = words
 
